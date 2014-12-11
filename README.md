@@ -1,4 +1,4 @@
-# Hibernate, Sprint, Reids Test
+# Hibernate, Sprint, Redis Test
 
 Simple project to test out Spring, backed by hibernate with automatic L2 cache in Redis
 
