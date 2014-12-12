@@ -1,6 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'war'
 apply plugin: 'jetty'
+apply plugin: 'jacoco'
 
 sourceCompatibility = 1.8
 version = "1.0-Snapshot"
@@ -20,20 +21,29 @@ repositories {
     jcenter()
 }
 
+jacoco {
+    toolVersion = "0.7.2.201409121644"
+}
 test {
-	useTestNG()
-	
-	testLogging.showStandardStreams = true
-	
-	// listen to events in the test execution lifecycle
-	beforeTest { descriptor ->
-	   logger.lifecycle("Running test: " + descriptor.getName())
-	}
-	
-	// listen to standard out and standard error of the test JVM(s)
-	onOutput { descriptor, event ->
-	   logger.lifecycle("Test: " + descriptor + " produced standard out/err: " + event.message )
-	}
+    useTestNG()
+    
+    jacoco {
+        append = false
+        destinationFile = file("$buildDir/jacoco/test.exec")    
+        classDumpFile = file("$buildDir/build/classes/test")
+    }
+    
+    testLogging.showStandardStreams = true
+    
+    // listen to events in the test execution lifecycle
+    beforeTest { descriptor ->
+       logger.lifecycle("Running test: " + descriptor.getName())
+    }
+    
+    // listen to standard out and standard error of the test JVM(s)
+    onOutput { descriptor, event ->
+       logger.lifecycle("Test: " + descriptor + " produced standard out/err: " + event.message )
+    }
 }
  
 dependencies {
