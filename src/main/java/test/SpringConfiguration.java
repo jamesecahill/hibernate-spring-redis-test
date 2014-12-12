@@ -1,5 +1,6 @@
 package test;
 
+import java.util.List;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -13,15 +14,36 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.orm.hibernate4.HibernateTemplate;
 import org.springframework.orm.hibernate4.HibernateTransactionManager;
 import org.springframework.orm.hibernate4.LocalSessionFactoryBean;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate4.Hibernate4Module;
 
 @EnableWebMvc
+@EnableTransactionManagement
 @ComponentScan
 @Configuration
-public class SpringConfiguration {
+public class SpringConfiguration extends WebMvcConfigurerAdapter {
+    @Override
+    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        MappingJackson2HttpMessageConverter messageConverter = new MappingJackson2HttpMessageConverter();
+
+        ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+        mapper.registerModule(new Hibernate4Module());
+
+        messageConverter.setObjectMapper(mapper);
+        converters.add(messageConverter);
+        super.configureMessageConverters(converters);
+    }
+
     @Bean
     @Autowired
     public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
@@ -33,8 +55,7 @@ public class SpringConfiguration {
     @Bean
     @Autowired
     public HibernateTemplate hibernateTemplate(SessionFactory sessionFactory) {
-        HibernateTemplate hibernateTemplate = new HibernateTemplate(sessionFactory);
-        return hibernateTemplate;
+        return new HibernateTemplate(sessionFactory);
     }
 
     @Bean

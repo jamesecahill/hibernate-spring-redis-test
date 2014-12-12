@@ -8,13 +8,14 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class TestEntityRepository {
-    @Autowired HibernateTemplate hibernateTemplate;
+    @Autowired
+    HibernateTemplate hibernateTemplate;
 
     public List<TestEntity> getAllTestEntities() {
         return hibernateTemplate.loadAll(TestEntity.class);
     }
 
     public TestEntity findTestEntityById(int id) {
-        return hibernateTemplate.get(TestEntity.class, id);
+        return hibernateTemplate.load(TestEntity.class, id);
     }
 }
