@@ -16,6 +16,6 @@ public class TestEntityRepository {
     }
 
     public TestEntity findTestEntityById(int id) {
-        return hibernateTemplate.load(TestEntity.class, id);
+        return hibernateTemplate.get(TestEntity.class, id);
     }
 }

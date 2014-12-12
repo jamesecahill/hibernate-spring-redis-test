@@ -16,7 +16,9 @@ public class TestEntityService {
 
     public TestEntity getTestEntity(int id) {
         TestEntity e = testEntityRepository.findTestEntityById(id);
-        e.getName();
+        if (e == null) {
+            throw new ResourceNotFoundException();
+        }
         return e;
     }
 }
