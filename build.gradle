@@ -17,8 +17,25 @@ repositories {
     maven {
         url "http://dl.bintray.com/debop/maven"
     }
+    jcenter()
 }
 
+test {
+	useTestNG()
+	
+	testLogging.showStandardStreams = true
+	
+	// listen to events in the test execution lifecycle
+	beforeTest { descriptor ->
+	   logger.lifecycle("Running test: " + descriptor.getName())
+	}
+	
+	// listen to standard out and standard error of the test JVM(s)
+	onOutput { descriptor, event ->
+	   logger.lifecycle("Test: " + descriptor + " produced standard out/err: " + event.message )
+	}
+}
+ 
 dependencies {
     compile "org.springframework:spring-webmvc:4.1.3.RELEASE"
     compile "org.springframework:spring-orm:4.1.3.RELEASE"
@@ -31,4 +48,5 @@ dependencies {
     compile "com.fasterxml.jackson.datatype:jackson-datatype-hibernate4:2.4.4"
     providedCompile "javax.servlet:javax.servlet-api:3.0.1"
     testCompile "org.testng:testng:6.8.8"
+    testCompile "org.mockito:mockito-core:1.+"
 }
