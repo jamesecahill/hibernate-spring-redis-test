@@ -5,6 +5,10 @@ apply plugin: 'jacoco'
 sourceCompatibility = 1.8
 version = "1.0-Snapshot"
 
+ext {
+    instructionCoverageMin = 0.50f
+}
+
 war {
     manifest {
         attributes 'Implementation-Title': 'hibernate-spring-redis-test', 
@@ -23,6 +27,24 @@ repositories {
 jacoco {
     toolVersion = "0.7.2.201409121644"
 }
+
+jacocoTestReport {
+    reports {
+	xml.enabled true
+    }
+}
+
+task checkCoverage(dependsOn: [test, jacocoTestReport]) << {
+    def parser = new XmlParser(false, false, true);
+    parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+    def reportXml = parser.parse("$buildDir/reports/jacoco/test/jacocoTestReport.xml")
+    def insCov = reportXml.counter.grep{it.@type == "INSTRUCTION"}[0];
+    def insCovPercent = insCov.@covered.toFloat() / (insCov.@missed.toFloat() + insCov.@covered.toFloat())
+    if (insCovPercent < instructionCoverageMin) {
+    	throw new RuntimeException("Instruction coverage of ${String.format("%.4f", insCovPercent * 100)}% is less than ${String.format("%.4f", instructionCoverageMin * 100)}%")
+    }
+}
+
 test {
     useTestNG()
     
