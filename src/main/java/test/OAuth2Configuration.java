@@ -13,6 +13,9 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.E
 import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.approval.TokenStoreUserApprovalHandler;
+import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 
@@ -25,8 +28,14 @@ public class OAuth2Configuration {
 
         @Override
         public void configure(HttpSecurity http) throws Exception {
-            http.authorizeRequests().anyRequest().authenticated().and()
-                    .authorizeRequests().antMatchers("/oauth/authorize").access("hasRole('ROLE_USER')");
+            http // TODO create different versions of the confirm_access controller for json/html invocations
+                 //      this will require supporting cookie and auth header authentication with JWT
+                .requestMatchers()
+                    .antMatchers("/api/**")
+                    .and()
+                .authorizeRequests()
+                    .anyRequest()
+                    .authenticated();
             }
 
     }
@@ -38,6 +47,9 @@ public class OAuth2Configuration {
         @Autowired
         @Qualifier("authenticationManagerBean")
         private AuthenticationManager authenticationManager;
+
+        @Autowired
+        ClientDetailsService clientDetailsService;
 
         @Bean
         public JwtAccessTokenConverter accessTokenConverter() {
@@ -54,17 +66,28 @@ public class OAuth2Configuration {
         @Override
         public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
             clients.inMemory().withClient("my-client")
-                    .authorizedGrantTypes("password", "authorization_code", "refresh_token", "implicit")
-                    .authorities("ROLE_CLIENT", "ROLE_TRUSTED_CLIENT")
-                    .scopes("read", "write", "trust")
-                    .accessTokenValiditySeconds(60);
+                    .authorizedGrantTypes("refresh_token", "implicit")
+                    .authorities("ROLE_CLIENT")
+                    .scopes("read", "write")
+                    .autoApprove(true) // don't make people click approve for this client
+                    .accessTokenValiditySeconds(300);
+        }
+
+        private UserApprovalHandler userApprovalhandler() {
+            //use this not for token store approval, but for client details auto-approval
+            TokenStoreUserApprovalHandler handler = new TokenStoreUserApprovalHandler();
+            handler.setTokenStore(new JwtTokenStore(accessTokenConverter()));
+            handler.setClientDetailsService(clientDetailsService);
+            return handler;
         }
 
         @Override
         public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
             endpoints
+                //don't really need this now though... as there isn't any extenral auth grant client
                 //.authorizationCodeServices( TODO JwtAuthorizationCodeServices or Hibernate, so you get caching )
                 .tokenStore(new JwtTokenStore(accessTokenConverter()))
+                .userApprovalHandler(userApprovalhandler())
                 .authenticationManager(authenticationManager) // TODO remove this... use the implicit flow with normal jwt token login
                 .accessTokenConverter(accessTokenConverter());
         }

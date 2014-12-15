@@ -21,7 +21,9 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @EnableWebSecurity
 @Configuration
@@ -29,27 +31,35 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http //TODO this should be a real auth token filter to verify JWT tokens (non-oauth)
+            //should also support cookies for form based login
             .addFilterBefore(new Filter(){
-                @Override
-                public void init(FilterConfig filterConfig) throws ServletException { }
+                    @Override
+                    public void init(FilterConfig filterConfig) throws ServletException { }
 
-                @Override
-                public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-                    Authentication auth = null;
-                    try {
-                        auth = authenticationManagerBean().authenticate(new UsernamePasswordAuthenticationToken("user", "password"));
-                    } catch (Exception e) {
-                        //log.error("error authenticating", e);
+                    @Override
+                    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+                        Authentication auth = null;
+                        try {
+                            auth = authenticationManagerBean().authenticate(new UsernamePasswordAuthenticationToken("user", "password"));
+                        } catch (Exception e) {
+                            //log.error("error authenticating", e);
+                        }
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                        chain.doFilter(request, response);
                     }
-                    SecurityContextHolder.getContext().setAuthentication(auth);
-                    chain.doFilter(request, response);
-                }
 
-                @Override
-                public void destroy() { }
-            }, UsernamePasswordAuthenticationFilter.class)
-            .csrf().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                    @Override
+                    public void destroy() { }
+                }, UsernamePasswordAuthenticationFilter.class)
+            .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+            .csrf()
+                .requireCsrfProtectionMatcher(new AntPathRequestMatcher("/oauth/authorize"))
+                .disable()
+            .authorizeRequests()
+                .anyRequest().authenticated();
+
     }
 
     @Override
